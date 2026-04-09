@@ -1,0 +1,10 @@
+{
+"SpaProxyServer": {
+"ServerUrl": "https://localhost:51247",
+"RedirectUrl": "",
+"LaunchCommand": "npm run dev",
+"WorkingDirectory": "C:\\Users\\RyanCoveny\\trainingCourses\\ProfileSearch\\ProfileSearch.Server\\..\\profilesearch.client",
+"MaxTimeoutInSeconds": "120",
+"KeepRunning": "false"
+}
+}

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="profilesearch.client/profilesearch.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="ProfileSearch.Server/ProfileSearch.Server.csproj" />
+</Solution>
