@@ -5,7 +5,6 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
 import 'cropperjs'
 
-import Croppie from 'croppie';
 import 'croppie/croppie.css';
 
 import { createApp } from 'vue'

@@ -2,22 +2,22 @@
   <div class="container">
     <label for="imageInput">Choose a profile picture:</label><br />
 
-    <input type="file" id="imageInput" name="imageInput" accept=".png, .jpg, .jpeg" @change="handleFileUpload" /><br />
+    <input type="file" id="imageInput" name="imageInput" accept=".png, .jpg, .jpeg" @click="deactivateFields" @change="handleFileUpload" /><br />
 
-    <div :hidden="!imageEl">
+    <div :hidden="!isCanvasReady">
       <button @click="cropperActive = !cropperActive">Crop</button>
       <button>Resize</button>
       <button>Etc</button><br />
     </div>
 
-    <!--<cropper-canvas class="image-preview" :hidden="!imageEl">
+    <!--<cropper-canvas class="image-preview" :hidden="!isCanvasReady">
       <cropper-image id="cropperImage" ref="cropperImage" cover rotatable scalable skewable translatable @transform="onCropperImageTransform"></cropper-image>-->
 
-    <cropper-canvas v-if="imageEl" ref="cropperCanvas" class="image-preview">
+    <cropper-canvas v-if="isCanvasReady" ref="cropperCanvas" class="image-preview">
       <cropper-image ref="cropperImage" alt="" rotatable scalable skewable translatable @transform="onCropperImageTransform" />
       <cropper-shade hidden></cropper-shade>
       <cropper-handle action="select" plain></cropper-handle>
-      <cropper-selection v-if="selectionReady" id="cropperSelection" aspect-ratio="1" ref="cropperSelection" dynamic movable resizable outlined @change="onCropperSelectionChange">
+      <cropper-selection v-if="isSelectionReady" id="cropperSelection" aspect-ratio="1" ref="cropperSelection" dynamic movable resizable outlined @change="onCropperSelectionChange">
         <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
         <cropper-handle action="n-resize"></cropper-handle>
         <cropper-handle action="e-resize"></cropper-handle>
@@ -30,7 +30,7 @@
       </cropper-selection>
     </cropper-canvas>
 
-    <div :hidden="!imageEl">
+    <div :hidden="!isCanvasReady">
       <button>Save</button>
       <button @click="downloadImage">Download</button>
       <button>Reset</button>
@@ -45,9 +45,8 @@
   export default defineComponent({
     data() {
       return {
-        imageEl: false,
-        selectionReady: false,
-        fileInput: null,
+        isCanvasReady: false,
+        isSelectionReady: false,
         cropperActive: false,
         loading: false,
         post: null
@@ -65,13 +64,12 @@
     methods: {
       async handleFileUpload(event) {
         if (event.target.value === "") {
-          this.imageEl = false;
-          this.selectionReady = false;
-          this.fileInput = null;
+          this.isCanvasReady = false;
+          this.isSelectionReady = false;
           return;
         }
 
-        this.fileInput = document.getElementById('imageInput');
+        let fileInput = document.getElementById('imageInput');
 
         const imageUrl = URL.createObjectURL(event.target.files[0]);
 
@@ -79,21 +77,42 @@
         imageRef.src = imageUrl;
         await imageRef.decode();
 
-        this.selectionReady = false;
-        this.imageEl = true;
+        this.isCanvasReady = true;
 
         await this.$nextTick();
 
-        this.$refs.cropperCanvas.style.width = `${imageRef.width}px`
-        this.$refs.cropperCanvas.style.height = `${imageRef.height}px`
+        let width = imageRef.width;
+        let height = imageRef.height;
+
+        if (imageRef.width <= 1080) {
+          this.$refs.cropperCanvas.style.width = `${imageRef.width}px`
+          this.$refs.cropperCanvas.style.height = `${imageRef.height}px`
+        }
+        else {
+          const proportion = imageRef.width / imageRef.height;
+
+          this.$refs.cropperCanvas.style.width = `1080px`
+          this.$refs.cropperCanvas.style.height = `${1080 / proportion}px`
+
+          width = 1080;
+          height = 1080 / proportion;
+        }
+
+        await this.$nextTick();
 
         this.$refs.cropperImage.src = imageUrl;
 
         await new Promise(resolve => requestAnimationFrame(resolve))
 
-        this.selectionReady = true;
+        this.isSelectionReady = true;
 
-        this.$refs.cropperSelection.$change(0, 0);
+        await this.$nextTick();
+
+        const size = Math.min(width, height) * 0.8;
+        const x = (width - size) / 2;
+        const y = (height - size) / 2;
+
+        this.$refs.cropperSelection.$change(x, y, size, size);
 
         imageRef.src = "";
       },
@@ -134,7 +153,7 @@
       onCropperSelectionChange(event) {
         const cropperCanvas = this.$refs.cropperCanvas;
 
-        if (!cropperCanvas || this.within === 'none') {
+        if (!cropperCanvas) {
           return;
         }
 
@@ -181,11 +200,17 @@
         const canvas = await selection.$toCanvas();
 
         const link = document.createElement('a');
-        link.download = this.imageEl.name + "_cropped";
+        link.download = this.isCanvasReady.name + "_cropped";
         link.href = canvas.toDataURL('image/png');
         link.click();
+      },
+
+      deactivateFields() {
+        this.isCanvasReady = false;
+        this.isSelectionReady = false;
       }
     },
+
     computed: {
 
     }
@@ -194,7 +219,7 @@
 
 <style scoped>
   .container * {
-    padding-bottom: 10px;
+    margin-bottom: 10px;
   }
 
   .image-preview {
