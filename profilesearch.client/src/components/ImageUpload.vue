@@ -1,9 +1,13 @@
 <script setup lang="js">
+  import { getCurrentInstance } from 'vue'
   import CropImage from './CropImage.vue'
+  import { store } from '../../store.js'
+
+  console.log("store", store);
 </script>
 
 <template>
-  <div>
+  <div class="containerPosition" :class="store.isDarkMode ? 'containerDarkMode' : 'containerLightMode'">
     <h1>Image Cropper</h1>
     <p>Part One of this project will, when done, let the user crop an image automatically based on the bounds found by facial recognition.</p>
     <ol>
@@ -14,13 +18,6 @@
     </ol>
 
     <CropImage />
-
-    <!--<tr v-for="forecast in post" :key="forecast.date">
-      <td>{{ forecast.date }}</td>
-      <td>{{ forecast.temperatureC }}</td>
-      <td>{{ forecast.temperatureF }}</td>
-      <td>{{ forecast.summary }}</td>
-    </tr>-->
   </div>
 </template>
 
@@ -60,5 +57,18 @@
 </script>
 
 <style scoped>
+  .containerPosition {
+    max-width: 1280px;
+    margin: 2rem auto;
+    padding: 2rem;
+    border-radius: 20px;
+  }
 
+  .containerDarkMode {
+    background-color: #212121;
+  }
+
+  .containerLightMode {
+    background-color: #e4e5f1;
+  }
 </style>

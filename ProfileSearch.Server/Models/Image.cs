@@ -13,6 +13,6 @@ namespace ProfileSearch.Server.Models
         public int Y { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
-        public User User { get; set; } = null!;
+        public User? User { get; set; }
     }
 }

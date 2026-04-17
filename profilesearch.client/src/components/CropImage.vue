@@ -1,39 +1,45 @@
+<script setup lang="js">
+  import { store } from '../../store.js'
+</script>
+
 <template>
   <div class="container">
-    <label for="imageInput">Choose a profile picture:</label><br />
+    <label for="imageInput">Choose a profile picture:</label>
 
-    <input type="file" id="imageInput" name="imageInput" accept=".png, .jpg, .jpeg" @click="deactivateFields" @change="handleFileUpload" /><br />
+    <div>
+      <input type="file" id="imageInput" name="imageInput" style="margin-bottom: 0.5rem" accept=".png, .jpg, .jpeg" @click="deactivateFields" @change="handleFileUpload" />
 
-    <div :hidden="!isCanvasReady">
-      <button @click="cropperActive = !cropperActive">Crop</button>
-      <button>Resize</button>
-      <button>Etc</button><br />
-    </div>
+      <div :hidden="!isCanvasReady" style="padding: 0; margin-bottom: 0">
+        <button @click="cropperActive = !cropperActive">Crop</button>
+        <button>Resize</button>
+        <button>Etc</button>
+      </div>
 
-    <!--<cropper-canvas class="image-preview" :hidden="!isCanvasReady">
-      <cropper-image id="cropperImage" ref="cropperImage" cover rotatable scalable skewable translatable @transform="onCropperImageTransform"></cropper-image>-->
+      <!--<cropper-canvas class="image-preview" :hidden="!isCanvasReady">
+        <cropper-image id="cropperImage" ref="cropperImage" cover rotatable scalable skewable translatable @transform="onCropperImageTransform"></cropper-image>-->
 
-    <cropper-canvas v-if="isCanvasReady" ref="cropperCanvas" class="image-preview">
-      <cropper-image ref="cropperImage" alt="" rotatable scalable skewable translatable @transform="onCropperImageTransform" />
-      <cropper-shade hidden></cropper-shade>
-      <cropper-handle action="select" plain></cropper-handle>
-      <cropper-selection v-if="isSelectionReady" id="cropperSelection" aspect-ratio="1" ref="cropperSelection" dynamic movable resizable outlined @change="onCropperSelectionChange">
-        <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
-        <cropper-handle action="n-resize"></cropper-handle>
-        <cropper-handle action="e-resize"></cropper-handle>
-        <cropper-handle action="s-resize"></cropper-handle>
-        <cropper-handle action="w-resize"></cropper-handle>
-        <cropper-handle action="ne-resize"></cropper-handle>
-        <cropper-handle action="nw-resize"></cropper-handle>
-        <cropper-handle action="se-resize"></cropper-handle>
-        <cropper-handle action="sw-resize"></cropper-handle>
-      </cropper-selection>
-    </cropper-canvas>
+      <cropper-canvas v-if="isCanvasReady" ref="cropperCanvas" :class="store.isDarkMode ? 'image-preview-dark' : 'image-preview'" style="margin: 0">
+        <cropper-image ref="cropperImage" alt="" rotatable scalable skewable @transform="onCropperImageTransform" />
+        <cropper-shade hidden></cropper-shade>
+        <cropper-handle action="select" plain></cropper-handle>
+        <cropper-selection v-if="isSelectionReady" id="cropperSelection" aspect-ratio="1" ref="cropperSelection" dynamic movable resizable outlined @change="onCropperSelectionChange">
+          <cropper-handle action="move" theme-color="rgba(255, 255, 255, 0.35)"></cropper-handle>
+          <cropper-handle action="n-resize"></cropper-handle>
+          <cropper-handle action="e-resize"></cropper-handle>
+          <cropper-handle action="s-resize"></cropper-handle>
+          <cropper-handle action="w-resize"></cropper-handle>
+          <cropper-handle action="ne-resize"></cropper-handle>
+          <cropper-handle action="nw-resize"></cropper-handle>
+          <cropper-handle action="se-resize"></cropper-handle>
+          <cropper-handle action="sw-resize"></cropper-handle>
+        </cropper-selection>
+      </cropper-canvas>
 
-    <div :hidden="!isCanvasReady">
-      <button>Save</button>
-      <button @click="downloadImage">Download</button>
-      <button>Reset</button>
+      <div :hidden="!isCanvasReady">
+        <button @click="saveImage">Save</button>
+        <button @click="downloadImage">Download</button>
+        <button>Reset</button>
+      </div>
     </div>
   </div>
 </template>
@@ -41,6 +47,7 @@
 <script lang="js">
   import { defineComponent } from 'vue';
   import Croppie from 'croppie';
+  import axios from 'axios';
 
   export default defineComponent({
     data() {
@@ -48,6 +55,13 @@
         isCanvasReady: false,
         isSelectionReady: false,
         cropperActive: false,
+        imageUrl: '',
+        selectionProperties: {
+          x: -1,
+          y: -1,
+          width: 0,
+          height: 0
+        },
         loading: false,
         post: null
       };
@@ -66,15 +80,22 @@
         if (event.target.value === "") {
           this.isCanvasReady = false;
           this.isSelectionReady = false;
+          this.imageUrl = '';
+          this.selectionProperties = {
+            x: -1,
+            y: -1,
+            width: 0,
+            height: 0
+          }
           return;
         }
 
         let fileInput = document.getElementById('imageInput');
 
-        const imageUrl = URL.createObjectURL(event.target.files[0]);
+        this.imageUrl = URL.createObjectURL(event.target.files[0]);
 
         const imageRef = new Image();
-        imageRef.src = imageUrl;
+        imageRef.src = this.imageUrl;
         await imageRef.decode();
 
         this.isCanvasReady = true;
@@ -100,7 +121,7 @@
 
         await this.$nextTick();
 
-        this.$refs.cropperImage.src = imageUrl;
+        this.$refs.cropperImage.src = this.imageUrl;
 
         await new Promise(resolve => requestAnimationFrame(resolve))
 
@@ -109,10 +130,20 @@
         await this.$nextTick();
 
         const size = Math.min(width, height) * 0.8;
-        const x = (width - size) / 2;
-        const y = (height - size) / 2;
+        const _x = (width - size) / 2;
+        const _y = (height - size) / 2;
 
-        this.$refs.cropperSelection.$change(x, y, size, size);
+        this.$refs.cropperSelection.$change(_x, _y, size, size);
+
+        this.selectionProperties = {
+          x: _x,
+          y: _y,
+          width: size,
+          height: size
+        }
+
+        // console.log("canvas", this.$refs.cropperCanvas);
+        // console.log("selection", this.$refs.cropperSelection.$toCanvas());
 
         imageRef.src = "";
       },
@@ -172,6 +203,14 @@
         if (!this.inSelection(selection, maxSelection)) {
           event.preventDefault();
         }
+
+        console.log("selectionnnn", selection, selection.x);
+        this.selectionProperties = {
+          x: selection.x,
+          y: selection.y,
+          width: selection.width,
+          height: selection.height
+        }
       },
 
       notWithinBounds(cropperImageRect, cropperCanvasRect) {
@@ -190,6 +229,34 @@
           && (selection.x + selection.width) <= (maxSelection.x + maxSelection.width)
           && (selection.y + selection.height) <= (maxSelection.y + maxSelection.height)
         );
+      },
+
+      async saveImage() {
+        const image = this.$refs.cropperImage;
+
+        const imageRef = new Image();
+        imageRef.src = image.src;
+        await imageRef.decode();
+
+        if (!image || (this.selectionProperties.width == 0 && this.selectionProperties.height == 0)) {
+          console.error("ERROR IN SAVEIMAGE - Invalid Image or Selection!");
+          return;
+        }
+
+        let resp = axios.post(`/api/images`,
+          {
+            UserId: 1,
+            Name: 'Test',
+            Url: image.src,
+            X: this.selectionProperties.x,
+            Y: this.selectionProperties.y,
+            Width: this.selectionProperties.width,
+            Height: this.selectionProperties.height
+          }).then(response => {
+            console.log("response", response);
+          }).catch(e => {
+            console.error("ERROR IN saveImage -", e);
+          })
       },
 
       async downloadImage() {
@@ -212,18 +279,26 @@
     },
 
     computed: {
-
+      isDarkMode() {
+        return this.$globalState.isDarkMode;
+      }
     }
   });
 </script>
 
 <style scoped>
-  .container * {
+  .container {
     margin-bottom: 10px;
+    padding: 1rem;
+    border-radius: 10px;
   }
 
   .image-preview {
-    border: 3px solid black;
+    border: 3px dashed black;
+  }
+
+  .image-preview-dark {
+    border: 3px dashed white;
   }
 </style>
 

@@ -12,6 +12,7 @@
     <PackageJsonScriptsLintOxlint Condition="$(PackageJsonScriptsLintOxlint) == ''">oxlint . --fix</PackageJsonScriptsLintOxlint>
     <PackageJsonScriptsLintEslint Condition="$(PackageJsonScriptsLintEslint) == ''">eslint . --fix --cache</PackageJsonScriptsLintEslint>
     <PackageJsonDependenciesPopperjsCore Condition="$(PackageJsonDependenciesPopperjsCore) == ''">^2.11.8</PackageJsonDependenciesPopperjsCore>
+    <PackageJsonDependenciesAxios Condition="$(PackageJsonDependenciesAxios) == ''">^1.15.0</PackageJsonDependenciesAxios>
     <PackageJsonDependenciesBootstrap Condition="$(PackageJsonDependenciesBootstrap) == ''">^4.6.2</PackageJsonDependenciesBootstrap>
     <PackageJsonDependenciesBootstrapVue Condition="$(PackageJsonDependenciesBootstrapVue) == ''">^2.23.1</PackageJsonDependenciesBootstrapVue>
     <PackageJsonDependenciesCropperjs Condition="$(PackageJsonDependenciesCropperjs) == ''">^2.1.1</PackageJsonDependenciesCropperjs>
