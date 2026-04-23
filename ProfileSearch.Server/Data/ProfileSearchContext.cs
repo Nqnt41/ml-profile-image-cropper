@@ -5,15 +5,27 @@ namespace ProfileSearch.Server.Data
 {
     public class ProfileSearchContext : DbContext
     {
-        // public ProfileSearchContext(DbContextOptions<ProfileSearchContext> options) : base(options) {}
-
         public DbSet<User> Users { get; set; } = null!;
         public DbSet<Image> Images { get; set; } = null!;
         public DbSet<Search> Searches { get; set; } = null!;
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        public ProfileSearchContext(DbContextOptions<ProfileSearchContext> options) : base(options) {}
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            optionsBuilder.UseSqlServer("Server=(localdb)\\MSSQLLocalDB;Database=profileData;Trusted_Connection=True;TrustServerCertificate=True;");
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Image>()
+                .Property(i => i.Id)
+                .UseIdentityColumn(1, 1);
+
+            modelBuilder.Entity<User>()
+                .Property(u => u.Id)
+                .UseIdentityColumn(1, 1);
+
+            modelBuilder.Entity<Search>()
+                .Property(s => s.Id)
+                .UseIdentityColumn(1, 1);
         }
     }
 }

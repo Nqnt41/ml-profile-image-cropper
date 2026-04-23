@@ -1,5 +1,6 @@
 <script setup lang="js">
-  import { store } from '../../store.js'
+  import { store } from '../../store.js';
+  import ImageSearch from './ImageSearch.vue';
 </script>
 
 <template>
@@ -35,41 +36,39 @@
         </cropper-selection>
       </cropper-canvas>
 
-      <div :hidden="!isCanvasReady">
+      <div style="display: flex" :hidden="!isCanvasReady">
         <button @click="saveImage">Save</button>
         <button @click="downloadImage">Download</button>
-        <button>Reset</button>
+        <button @click="resetImage">Reset</button>
+        <input type="range" id="zoom-slider" style="margin-left: auto; margin-right: 2.5%;" min="0" max="1" step="0.01" value="0" @change="zoomTo" />
       </div>
+
+      <ImageSearch />
     </div>
   </div>
 </template>
 
 <script lang="js">
   import { defineComponent } from 'vue';
-  import Croppie from 'croppie';
   import axios from 'axios';
 
   export default defineComponent({
     data() {
       return {
+        cloudinaryContext: {},
         isCanvasReady: false,
         isSelectionReady: false,
         cropperActive: false,
         imageUrl: '',
+        originalSize: { width: 0, height: 0 },
         selectionProperties: {
           x: -1,
           y: -1,
           width: 0,
           height: 0
         },
-        loading: false,
-        post: null
+        prevZoom: 0.0,
       };
-    },
-    async created() {
-      // fetch the data when the view is created and the data is
-      // already being observed
-      //await this.fetchData();
     },
     watch: {
       // call again the method if the route changes
@@ -77,10 +76,11 @@
     },
     methods: {
       async handleFileUpload(event) {
-        if (event.target.value === "") {
+        if (event.target.value === "" || event.target.value == null) {
           this.isCanvasReady = false;
           this.isSelectionReady = false;
           this.imageUrl = '';
+          this.originalSize = { width: 0, height: 0 };
           this.selectionProperties = {
             x: -1,
             y: -1,
@@ -134,6 +134,8 @@
         const _y = (height - size) / 2;
 
         this.$refs.cropperSelection.$change(_x, _y, size, size);
+
+        this.originalSize = { width: imageRef.width, height: imageRef.height };
 
         this.selectionProperties = {
           x: _x,
@@ -231,6 +233,31 @@
         );
       },
 
+      zoomTo(event) {
+        const originalZoomRatio = parseFloat(event.target.value);
+
+        let zoomRatio = originalZoomRatio;
+        if (this.prevZoom > originalZoomRatio) {
+          zoomRatio -= 1;
+        }
+
+        console.log(zoomRatio);
+
+        const cropperImage = this.$refs.cropperImage;
+
+        if (!cropperImage) {
+          return;
+        }
+
+        if (this.originalSize.width < 600 || this.originalSize.height < 400) {
+          event.preventDefault();
+        } else {
+          cropperImage.$zoom(zoomRatio);
+          this.prevZoom = originalZoomRatio;
+        }
+
+      },
+
       async saveImage() {
         const image = this.$refs.cropperImage;
 
@@ -243,17 +270,26 @@
           return;
         }
 
-        let resp = axios.post(`/api/images`,
-          {
-            UserId: 1,
-            Name: 'Test',
-            Url: image.src,
-            X: this.selectionProperties.x,
-            Y: this.selectionProperties.y,
-            Width: this.selectionProperties.width,
-            Height: this.selectionProperties.height
-          }).then(response => {
-            console.log("response", response);
+        const selection = this.$refs.cropperSelection;
+        const croppedCanvas = await selection.$toCanvas();
+
+        const blob = await new Promise(resolve => croppedCanvas.toBlob(resolve, 'image/png'));
+
+        const cloudinaryUrl = await this.uploadToCloud(blob);
+
+        let info = {
+          UserId: 1,
+          Name: 'Test'.toLowerCase(), // TODO: Eventually replace with using ML to determine character name and such
+          Url: cloudinaryUrl,
+          X: this.selectionProperties.x,
+          Y: this.selectionProperties.y,
+          Width: this.selectionProperties.width,
+          Height: this.selectionProperties.height
+        }
+
+        let resp = axios.post(`/api/images`, info)
+          .then(response => {
+            console.log("saveImage returned", response);
           }).catch(e => {
             console.error("ERROR IN saveImage -", e);
           })
@@ -270,6 +306,77 @@
         link.download = this.isCanvasReady.name + "_cropped";
         link.href = canvas.toDataURL('image/png');
         link.click();
+      },
+
+      async resetImage() {
+        const url = this.imageUrl;
+
+        this.isCanvasReady = false;
+        this.isSelectionReady = false;
+        this.imageUrl = '';
+        this.selectionProperties = {
+          x: -1,
+          y: -1,
+          width: 0,
+          height: 0
+        }
+        this.originalSize = { width: 0, height: 0 };
+        document.getElementById("imageInput").value = null;
+
+        this.$nextTick();
+
+        this.handleFileUpload({ target: { value: null, files: [{ name: url }] } });
+      },
+
+      async uploadToCloud(imageBlob) {
+        if (Object.entries(this.cloudinaryContext).length === 0) {
+          this.cloudinaryContext = await this.getCloudinaryContext();
+        }
+
+        console.log("Uploading to Cloudinary...");
+
+        const formData = new FormData();
+        formData.append("file", imageBlob, "cropped-image.png");
+        formData.append("upload_preset", this.cloudinaryContext.uploadPreset);
+
+        try {
+          const response = await fetch(
+            this.cloudinaryContext.url,
+            { method: "POST", body: formData },
+          );
+
+          if (!response.ok) {
+            throw new Error(`Cloudinary upload failed: ${response.status} ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          console.log("Cloudinary upload successful:", result);
+
+          // Return the secure URL of the uploaded image
+          return result.secure_url;
+        }
+        catch (error) {
+          console.error("ERROR uploading to Cloudinary:", error);
+          throw error;
+        }
+      },
+
+      async getCloudinaryContext() {
+        return await fetch("/api/images/getCloudinaryContext")
+          .then(response => {
+            if (!response.ok) {
+              throw new Error(`Failed to fetch Cloudinary context: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+          })
+          .then(data => {
+            console.log("Cloudinary context fetched successfully:", data);
+            return data;
+          })
+          .catch(error => {
+            console.error("ERROR fetching Cloudinary context:", error);
+            throw error;
+          });
       },
 
       deactivateFields() {
@@ -291,6 +398,12 @@
     margin-bottom: 10px;
     padding: 1rem;
     border-radius: 10px;
+  }
+
+  .slider {
+    justify-content: flex-end;
+    width: 100px;
+    height: 50px;
   }
 
   .image-preview {

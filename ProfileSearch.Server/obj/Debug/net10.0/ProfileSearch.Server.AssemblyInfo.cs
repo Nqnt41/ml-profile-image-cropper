@@ -11,10 +11,11 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("496889b8-f650-4296-a034-e1dcb61d9bf0")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("ProfileSearch.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+94021ae78715e7ae17d55a1ba49144db2d06fe4a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+faf4aa510cd7b69673141d99298207072a6960d3")]
 [assembly: System.Reflection.AssemblyProductAttribute("ProfileSearch.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ProfileSearch.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

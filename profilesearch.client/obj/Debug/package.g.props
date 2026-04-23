@@ -17,6 +17,7 @@
     <PackageJsonDependenciesBootstrapVue Condition="$(PackageJsonDependenciesBootstrapVue) == ''">^2.23.1</PackageJsonDependenciesBootstrapVue>
     <PackageJsonDependenciesCropperjs Condition="$(PackageJsonDependenciesCropperjs) == ''">^2.1.1</PackageJsonDependenciesCropperjs>
     <PackageJsonDependenciesCroppie Condition="$(PackageJsonDependenciesCroppie) == ''">^2.6.5</PackageJsonDependenciesCroppie>
+    <PackageJsonDependenciesMulter Condition="$(PackageJsonDependenciesMulter) == ''">^2.1.1</PackageJsonDependenciesMulter>
     <PackageJsonDependenciesVue Condition="$(PackageJsonDependenciesVue) == ''">^3.5.32</PackageJsonDependenciesVue>
     <PackageJsonDevdependenciesEslintJs Condition="$(PackageJsonDevdependenciesEslintJs) == ''">^10.0.1</PackageJsonDevdependenciesEslintJs>
     <PackageJsonDevdependenciesVitejsPluginVue Condition="$(PackageJsonDevdependenciesVitejsPluginVue) == ''">^6.0.5</PackageJsonDevdependenciesVitejsPluginVue>

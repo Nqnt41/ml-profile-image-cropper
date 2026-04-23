@@ -16,9 +16,12 @@ namespace ProfileSearch.Server.Controllers
     {
         private readonly ProfileSearchContext _context;
 
-        public ImagesController(ProfileSearchContext context)
+        private readonly CloudinaryContext _cloudinary;
+
+        public ImagesController(ProfileSearchContext context, CloudinaryContext cloudinary)
         {
             _context = context;
+            _cloudinary = cloudinary;
         }
 
         // GET: Images
@@ -38,7 +41,6 @@ namespace ProfileSearch.Server.Controllers
             }
 
             var image = await _context.Images
-                .Include(i => i.User)
                 .FirstOrDefaultAsync(m => m.Id == id);
             if (image == null)
             {
@@ -46,6 +48,13 @@ namespace ProfileSearch.Server.Controllers
             }
 
             return Ok(image);
+        }
+
+        // GET: api/images/getPairs
+        [HttpGet("getPairs")]
+        public async Task<ActionResult<IEnumerable<object>>> GetPairs()
+        {   
+            return Ok(await _context.Images.Select(i => new { i.Id, i.Name }).ToListAsync());
         }
 
         // POST: Images/Create
@@ -115,6 +124,18 @@ namespace ProfileSearch.Server.Controllers
             }
 
             return NoContent();
+        }
+
+        // GET: Get cloudinary details
+        [HttpGet("getCloudinaryContext")]
+        public ActionResult GetCloudinaryDetails()
+        {
+            var cloudinaryContext = new
+            {
+                url = _cloudinary.Url,
+                uploadPreset = _cloudinary.UploadPreset
+            };
+            return Ok(cloudinaryContext);
         }
 
         private bool ImageExists(int id)
